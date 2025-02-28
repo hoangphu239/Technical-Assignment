@@ -1,6 +1,7 @@
 package com.phule.assignmenttest.presentation.home
 
 import android.content.Context
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -10,7 +11,6 @@ import androidx.paging.cachedIn
 import com.phule.assignmenttest.data.remote.Video
 import com.phule.assignmenttest.domain.model.Content
 import com.phule.assignmenttest.domain.use_case.UseCase
-import com.phule.assignmenttest.presentation.base.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -23,7 +23,7 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val useCase: UseCase,
-) : BaseViewModel() {
+) : ViewModel() {
 
     private val _dataState = MutableStateFlow<PagingData<Content>>(PagingData.empty())
     val dataState: StateFlow<PagingData<Content>>
@@ -38,7 +38,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun getLocalData(startPage: Int = 1) {
-        safeLaunch {
+        viewModelScope.launch {
             useCase.fetchContentUseCase(startPage).cachedIn(viewModelScope).collect {
                 _dataState.emit(it)
             }

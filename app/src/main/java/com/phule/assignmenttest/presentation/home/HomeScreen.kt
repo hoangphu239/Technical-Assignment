@@ -1,7 +1,5 @@
 package com.phule.assignmenttest.presentation.home
 
-import android.view.ViewGroup
-import android.widget.FrameLayout
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -201,6 +199,7 @@ fun VideoItem(
 ) {
     val context = LocalContext.current
     val exoPlayer = remember { viewModel.getPlayer(context, video) }
+    val playerView = remember { PlayerView(context) }
 
     LaunchedEffect(isVisible) {
         exoPlayer.playWhenReady = isVisible
@@ -214,14 +213,10 @@ fun VideoItem(
     ) {
         AndroidView(
             factory = {
-                PlayerView(context).apply {
+                playerView.apply {
                     player = exoPlayer
-                    layoutParams = FrameLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                    )
                 }
-            },
+            }, // Dùng playerView đã nhớ trước đó
             modifier = Modifier.fillMaxWidth()
         )
     }
