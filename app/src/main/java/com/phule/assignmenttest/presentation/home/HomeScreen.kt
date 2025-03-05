@@ -1,5 +1,8 @@
 package com.phule.assignmenttest.presentation.home
 
+import android.util.Log
+import android.view.ViewGroup
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -11,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
@@ -19,9 +21,6 @@ import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridS
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Warning
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -31,19 +30,19 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -57,37 +56,39 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import coil.compose.AsyncImage
 import com.phule.assignmenttest.R
+import com.phule.assignmenttest.common.PHONE_NUM_OF_COLUMNS
+import com.phule.assignmenttest.common.TABLET_NUM_OF_COLUMNS
+import com.phule.assignmenttest.common.TABLET_SCREEN_WIDTH_DP
 import com.phule.assignmenttest.common.TagPosition
-import com.phule.assignmenttest.data.remote.Image
-import com.phule.assignmenttest.data.remote.Video
+import com.phule.assignmenttest.data.remote.model.Image
+import com.phule.assignmenttest.data.remote.model.Video
 import com.phule.assignmenttest.domain.use_case.PAGE_SIZE
+import com.phule.assignmenttest.presentation.utils.LoadingShimmerEffect
+import com.phule.assignmenttest.presentation.utils.PlayerListener
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
-    val lazyGirdState = rememberLazyStaggeredGridState()
+    val lazyGridState = rememberLazyStaggeredGridState()
     val pullToRefreshState = rememberPullToRefreshState()
     val phoneAspectRatios = remember { listOf(0.8f, 1f, 1.2f, 1f) }
     val tabletAspectRatios = remember { listOf(0.6f, 0.8f, 1.2f, 1.4f, 1.2f, 1f) }
     var isRefreshing by rememberSaveable { mutableStateOf(false) }
 
-    var columnCount = 2
-    var isTabletDevice = false
-    val configuration = LocalConfiguration.current
-    val screenWidthDp = configuration.screenWidthDp
-    if (screenWidthDp >= 600) {
-        isTabletDevice = true
-        columnCount = 3
-    }
-
+    val columnCount =
+        if (LocalConfiguration.current.screenWidthDp >= TABLET_SCREEN_WIDTH_DP) TABLET_NUM_OF_COLUMNS else PHONE_NUM_OF_COLUMNS
     val dataState = viewModel.dataState.collectAsLazyPagingItems()
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -95,68 +96,62 @@ fun HomeScreen(
             .nestedScroll(pullToRefreshState.nestedScrollConnection)
     ) {
         LazyVerticalStaggeredGrid(
-            state = lazyGirdState,
+            state = lazyGridState,
             columns = StaggeredGridCells.Fixed(columnCount),
             verticalItemSpacing = 10.dp,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            val loadState = dataState.loadState.mediator
-            if (loadState?.refresh == LoadState.Loading) {
-                item { LoadingItem() }
-            }
-            if (loadState?.append == LoadState.Loading) {
-                item { LoadingItem() }
-            }
-            if (loadState?.refresh is LoadState.Error || loadState?.append is LoadState.Error) {
-                item {
-                    val isPaginatingError =
-                        (loadState.append is LoadState.Error) || dataState.itemCount > 1
-                    val error = if (loadState.append is LoadState.Error)
-                        (loadState.append as LoadState.Error).error
-                    else
-                        (loadState.refresh as LoadState.Error).error
-                    ErrorItem(isPaginatingError, error)
-                }
-            } else {
-                items(
-                    count = dataState.itemCount,
-                    key = { index -> dataState[index]?.id ?: index },
-                    span = { index ->
-                        val resourceItem = dataState[index]
-                        if (resourceItem?.videos != null) {
-                            StaggeredGridItemSpan.FullLine
-                        } else {
-                            StaggeredGridItemSpan.SingleLane
-                        }
-                    }
-                ) { index ->
-                    val isVisible by produceState(initialValue = false, lazyGirdState) {
-                        snapshotFlow { lazyGirdState.layoutInfo.visibleItemsInfo.any { it.index == index } }
-                            .collect { value = it }
-                    }
-
+            items(
+                count = dataState.itemCount,
+                key = { index ->
+                    dataState[index]?.id ?: index
+                },
+                span = { index ->
                     val resourceItem = dataState[index]
-                    resourceItem?.videos?.let { video ->
+                    if (resourceItem?.video != null) {
+                        StaggeredGridItemSpan.FullLine
+                    } else {
+                        StaggeredGridItemSpan.SingleLane
+                    }
+                }
+            ) { index ->
+                val resourceItem = dataState[index]
+                if (resourceItem != null) {
+                    val video = resourceItem.video
+                    val image = resourceItem.image
+
+                    if (video != null) {
+                        val indexPaging = index / PAGE_SIZE
+                        val isVisible by remember {
+                            derivedStateOf {
+                                val layoutInfo = lazyGridState.layoutInfo
+                                val visibleItems = layoutInfo.visibleItemsInfo
+                                visibleItems.any { it.index == index }
+                            }
+                        }
                         VideoItem(
                             viewModel = viewModel,
+                            index = indexPaging,
                             video = video,
                             isVisible = isVisible,
-                            modifier = Modifier.padding(bottom = 10.dp)
+                            modifier = Modifier.padding(vertical = 10.dp)
                         )
-                    }
-
-                    resourceItem?.images?.let { image ->
+                    } else if (image != null) {
                         val indexPaging = (index - (index / PAGE_SIZE + 1)) % PAGE_SIZE
-                        val aspectRatio =
-                            if (isTabletDevice) tabletAspectRatios[indexPaging % tabletAspectRatios.size]
-                            else phoneAspectRatios[indexPaging % phoneAspectRatios.size]
                         ImageItem(
-                            image = image,
-                            aspectRatio = aspectRatio
+                            image,
+                            if (columnCount == TABLET_NUM_OF_COLUMNS) tabletAspectRatios[indexPaging % tabletAspectRatios.size]
+                            else phoneAspectRatios[indexPaging % phoneAspectRatios.size]
                         )
                     }
                 }
             }
+        }
+
+        when (dataState.loadState.refresh) {
+            is LoadState.Loading -> LoadingItem(columnCount, phoneAspectRatios, tabletAspectRatios)
+            is LoadState.NotLoading -> Unit
+            is LoadState.Error -> ErrorItem()
         }
 
         LaunchedEffect(pullToRefreshState.isRefreshing) {
@@ -178,67 +173,92 @@ fun HomeScreen(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_STOP -> viewModel.pauseAllPlayers()
-                Lifecycle.Event.ON_START -> viewModel.resumeAllPlayers()
+                Lifecycle.Event.ON_STOP -> viewModel.pausePlayer()
+                Lifecycle.Event.ON_START -> viewModel.resumePlayer()
                 else -> {}
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 }
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun VideoItem(
     viewModel: HomeViewModel,
+    index: Int,
     video: Video,
     isVisible: Boolean,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val exoPlayer = remember { viewModel.getPlayer(context, video) }
-    val playerView = remember { PlayerView(context) }
+    val exoPlayer = remember(video.id) { viewModel.getSharedPlayer(video, index) }
+    val playerView = rememberPlayerView(exoPlayer)
 
-    LaunchedEffect(isVisible) {
+    Log.d("videoId", video.id)
+
+    LaunchedEffect(video.id, isVisible) {
         exoPlayer.playWhenReady = isVisible
     }
 
-    Card(
-        colors = CardDefaults.cardColors(Color.Black),
+    Box(
         modifier = modifier
             .aspectRatio(16 / 9f)
-            .clip(RoundedCornerShape(8.dp)),
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color.Black)
     ) {
         AndroidView(
-            factory = {
-                playerView.apply {
-                    player = exoPlayer
+            factory = { context ->
+                ComposeView(context).apply {
+                    setContent {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(8.dp))
+                        ) {
+                            AndroidView(
+                                factory = { playerView },
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    }
                 }
-            }, // Dùng playerView đã nhớ trước đó
-            modifier = Modifier.fillMaxWidth()
+            },
+            modifier = Modifier.fillMaxSize()
         )
     }
 
-    DisposableEffect(video.id) {
-        onDispose {
-            viewModel.savePosition(video.id, exoPlayer.currentPosition)
-            viewModel.releasePlayer(video.id)
+    PlayerListener(
+        player = exoPlayer
+    ) { event ->
+        when (event) {
+            Player.EVENT_RENDERED_FIRST_FRAME -> {
+                playerView.hideController()
+            }
+
+            Player.EVENT_PLAYER_ERROR -> {
+                Toast.makeText(context, "Please check your internet connection", Toast.LENGTH_LONG)
+                    .show()
+            }
+
+            Player.EVENT_PLAYBACK_STATE_CHANGED -> {
+                playerView.hideController()
+            }
         }
+    }
+
+    DisposableEffect(video.id) {
+        onDispose { viewModel.savePosition(video.id, exoPlayer.currentPosition) }
     }
 }
 
 @Composable
-fun ImageItem(
-    image: Image,
-    aspectRatio: Float
-) {
+fun ImageItem(image: Image, aspectRatio: Float) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
             .background(Color.White)
-            .wrapContentSize()
             .aspectRatio(1f / aspectRatio)
     ) {
         AsyncImage(
@@ -337,39 +357,47 @@ fun PriceItem(image: Image) {
 }
 
 @Composable
-fun LoadingItem(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        contentAlignment = Alignment.Center,
+fun LoadingItem(
+    columnCount: Int = PHONE_NUM_OF_COLUMNS,
+    phoneAspectRatios: List<Float>,
+    tabletAspectRatios: List<Float>
+) {
+    LazyVerticalStaggeredGrid(
+        columns = StaggeredGridCells.Fixed(columnCount),
+        verticalItemSpacing = 10.dp,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+        items(
+            count = 11,
+            span = { index ->
+                if (index == 0) StaggeredGridItemSpan.FullLine
+                else StaggeredGridItemSpan.SingleLane
+            }
+        ) { index ->
+            LoadingShimmerEffect(
+                index = index,
+                aspectRatio = if (columnCount == TABLET_NUM_OF_COLUMNS) tabletAspectRatios[index % tabletAspectRatios.size]
+                else phoneAspectRatios[index % phoneAspectRatios.size]
+            )
+        }
     }
 }
 
 @Composable
-fun ErrorItem(isPaginatingError: Boolean, error: Throwable) {
-    val modifier = if (isPaginatingError) {
-        Modifier.padding(8.dp)
-    } else {
-        Modifier.fillMaxSize()
-    }
-
+fun ErrorItem() {
     Column(
-        modifier = modifier,
+        modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (!isPaginatingError) {
-            Icon(
-                modifier = Modifier
-                    .size(64.dp),
-                imageVector = Icons.Rounded.Warning, contentDescription = null
-            )
-        }
+        Icon(
+            imageVector = Icons.Rounded.Warning,
+            contentDescription = null,
+            modifier = Modifier.size(64.dp)
+        )
+
         Text(
-            text = error.message ?: error.toString(),
+            text = "An error occurred. Please try again!",
             color = MaterialTheme.colorScheme.error,
             textAlign = TextAlign.Center,
             modifier = Modifier
@@ -379,5 +407,26 @@ fun ErrorItem(isPaginatingError: Boolean, error: Throwable) {
     }
 }
 
-
-
+@Composable
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+fun rememberPlayerView(player: Player): PlayerView {
+    val context = LocalContext.current
+    val playerView = remember {
+        PlayerView(context).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FILL
+            setShowBuffering(PlayerView.SHOW_BUFFERING_NEVER)
+            this.player = player
+        }
+    }
+    DisposableEffect(key1 = player) {
+        playerView.player = player
+        onDispose {
+            playerView.player = null
+        }
+    }
+    return playerView
+}

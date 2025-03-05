@@ -1,4 +1,4 @@
-package com.phule.assignmenttest.data.remote
+package com.phule.assignmenttest.data.remote.model
 
 import com.google.gson.annotations.SerializedName
 import com.phule.assignmenttest.domain.model.Content
@@ -13,11 +13,11 @@ data class ContentResponse(
 fun ContentResponse.toContentList(): List<Content> {
     val contentList = mutableListOf<Content>()
     video.let { video ->
-        contentList.add(Content(id = UUID.randomUUID().toString(), images = null, videos = video))
+        contentList.add(Content(id = UUID.randomUUID().toString(), image = null, video = video))
     }
 
     images.forEach { image ->
-        contentList.add(Content(id = UUID.randomUUID().toString(), images = image, videos = null))
+        contentList.add(Content(id = UUID.randomUUID().toString(), image = image, video = null))
     }
 
     return contentList

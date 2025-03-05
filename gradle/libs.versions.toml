@@ -13,10 +13,9 @@ activityCompose = "1.10.0"
 composeBom = "2024.04.01"
 hilt = "2.50"
 hiltNavigationCompose = "1.2.0"
-pagingComposeVersion = "1.0.0-alpha18"
-pagingRuntimeVersion = "3.1.1"
+pagingComposeVersion = "3.3.6"
+pagingRuntimeVersion = "3.3.6"
 coilCompose = "2.4.0"
-converterGson = "2.9.0"
 media3Exoplayer = "1.5.1"
 media3ExoplayerVersion = "1.3.1"
 
@@ -44,7 +43,6 @@ androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-com
 androidx-paging-compose = { module = "androidx.paging:paging-compose", version.ref = "pagingComposeVersion" }
 androidx-paging-runtime = { module = "androidx.paging:paging-runtime", version.ref = "pagingRuntimeVersion" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
-converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGson" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hilt" }
 androidx-media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3Exoplayer" }

@@ -1,4 +1,4 @@
-package com.phule.assignmenttest.data.remote
+package com.phule.assignmenttest.data.remote.model
 
 import com.google.gson.annotations.SerializedName
 

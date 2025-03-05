@@ -1,6 +1,6 @@
 package com.phule.assignmenttest.domain.repository
 
-import com.phule.assignmenttest.data.remote.Image
+import com.phule.assignmenttest.data.remote.model.Image
 import com.phule.assignmenttest.domain.model.Content
 
 
