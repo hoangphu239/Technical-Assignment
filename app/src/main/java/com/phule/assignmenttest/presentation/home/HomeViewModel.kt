@@ -55,14 +55,14 @@ class HomeViewModel @Inject constructor(
         exoPlayer.seekToDefaultPosition()
     }
 
-    fun getSharedPlayer(video: Video, position: Int): ExoPlayer {
+    fun getSharedPlayer(video: Video, index: Int): ExoPlayer {
         if (currentPlayingVideoId != video.id) {
             exoPlayer.apply {
                 if (!videoPositions.containsKey(video.id)) {
-                    addMediaItem(position, MediaItem.fromUri(video.url))
+                    addMediaItem(index, MediaItem.fromUri(video.url))
                     prepare()
                 }
-                seekTo(position, getPosition(video.id))
+                seekTo(index, getPosition(video.id))
             }
             currentPlayingVideoId = video.id
         }
