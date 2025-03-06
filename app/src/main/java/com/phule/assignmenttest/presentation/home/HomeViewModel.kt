@@ -60,12 +60,10 @@ class HomeViewModel @Inject constructor(
             exoPlayer.apply {
                 if (!videoPositions.containsKey(video.id)) {
                     addMediaItem(position, MediaItem.fromUri(video.url))
+                    prepare()
                 }
-                repeatMode = Player.REPEAT_MODE_ONE
-                prepare()
                 seekTo(position, getPosition(video.id))
             }
-
             currentPlayingVideoId = video.id
         }
         return exoPlayer

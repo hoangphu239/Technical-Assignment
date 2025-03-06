@@ -137,11 +137,11 @@ fun HomeScreen(
                             modifier = Modifier.padding(vertical = 10.dp)
                         )
                     } else if (image != null) {
-                        val indexPaging = (index - (index / PAGE_SIZE + 1)) % PAGE_SIZE
+                        val indexInPage = (index - 1) % PAGE_SIZE
                         ImageItem(
                             image,
-                            if (columnCount == TABLET_NUM_OF_COLUMNS) tabletAspectRatios[indexPaging % tabletAspectRatios.size]
-                            else phoneAspectRatios[indexPaging % phoneAspectRatios.size]
+                            if (columnCount == TABLET_NUM_OF_COLUMNS) tabletAspectRatios[indexInPage % tabletAspectRatios.size]
+                            else phoneAspectRatios[indexInPage % phoneAspectRatios.size]
                         )
                     }
                 }
@@ -195,8 +195,6 @@ fun VideoItem(
     val context = LocalContext.current
     val exoPlayer = remember(video.id) { viewModel.getSharedPlayer(video, index) }
     val playerView = rememberPlayerView(exoPlayer)
-
-    Log.d("videoId", video.id)
 
     LaunchedEffect(video.id, isVisible) {
         exoPlayer.playWhenReady = isVisible

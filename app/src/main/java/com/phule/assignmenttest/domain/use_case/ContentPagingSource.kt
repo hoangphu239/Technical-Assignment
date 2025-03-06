@@ -28,7 +28,7 @@ class ContentPagingSource @Inject constructor(
             val contentList = repository.fetchContent(page)
             val adList = repository.fetchAdvertisement()
             val combinedList = contentList.mapIndexed { index, content ->
-                if (index >= 2 && AppUtils.isFibonacci(index - 1) && imageIndex < adList.size) {
+                if (index > 1 && AppUtils.isFibonacci(index - 1) && imageIndex < adList.size) {
                     content.copy(image = adList[imageIndex++])
                 } else {
                     content
