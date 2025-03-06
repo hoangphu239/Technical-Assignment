@@ -9,7 +9,7 @@ import com.phule.assignmenttest.domain.repository.Repository
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
-const val PAGE_SIZE = 21
+const val PAGE_SIZE = 27
 
 class FetchContentUseCase @Inject constructor(private val repository: Repository) {
     operator fun invoke(

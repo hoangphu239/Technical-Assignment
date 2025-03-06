@@ -366,7 +366,7 @@ fun LoadingItem(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         items(
-            count = 11,
+            count = PAGE_SIZE,
             span = { index ->
                 if (index == 0) StaggeredGridItemSpan.FullLine
                 else StaggeredGridItemSpan.SingleLane

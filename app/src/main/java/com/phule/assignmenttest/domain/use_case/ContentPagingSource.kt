@@ -6,6 +6,7 @@ import com.phule.assignmenttest.common.TOTAL_PAGES
 import com.phule.assignmenttest.domain.model.Content
 import com.phule.assignmenttest.domain.repository.Repository
 import com.phule.assignmenttest.presentation.utils.AppUtils
+import java.util.UUID
 import javax.inject.Inject
 
 class ContentPagingSource @Inject constructor(
@@ -22,21 +23,28 @@ class ContentPagingSource @Inject constructor(
 
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, Content> {
         return try {
-            var imageIndex = 0
+            var adIndex = 0
             val page = params.key ?: DEFAULT_PAGE
 
             val contentList = repository.fetchContent(page)
             val adList = repository.fetchAdvertisement()
-            val combinedList = contentList.mapIndexed { index, content ->
-                if (index > 1 && AppUtils.isFibonacci(index - 1) && imageIndex < adList.size) {
-                    content.copy(image = adList[imageIndex++])
-                } else {
-                    content
+            val resultList = contentList.toMutableList()
+
+            contentList.forEachIndexed { index, _ ->
+                if (index > 1 && AppUtils.isFibonacci(index - 1) && adIndex < adList.size) {
+                    resultList.add(
+                        index,
+                        Content(
+                            id = UUID.randomUUID().toString(),
+                            image = adList[adIndex++],
+                            video = null
+                        )
+                    )
                 }
             }
 
             LoadResult.Page(
-                data = combinedList,
+                data = resultList,
                 prevKey = if (page == FIRST_PAGE || page == DEFAULT_PAGE && !isPullRefreshed) null else page - 1,
                 nextKey = if (page == TOTAL_PAGES) null else page + 1
             )
