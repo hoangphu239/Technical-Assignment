@@ -1,6 +1,7 @@
 package com.phule.assignmenttest.domain.use_case
 
 import ContentPagingSource
+import android.content.Context
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
@@ -11,7 +12,10 @@ import javax.inject.Inject
 
 const val PAGE_SIZE = 27
 
-class FetchContentUseCase @Inject constructor(private val repository: Repository) {
+class FetchContentUseCase @Inject constructor(
+    private val repository: Repository,
+    private val context: Context
+) {
     operator fun invoke(
         isPullRefreshed: Boolean = false
     ): Flow<PagingData<Content>> =
@@ -22,7 +26,11 @@ class FetchContentUseCase @Inject constructor(private val repository: Repository
                 initialLoadSize = PAGE_SIZE
             ),
             pagingSourceFactory = {
-                ContentPagingSource(repository, isPullRefreshed)
+                ContentPagingSource(
+                    context,
+                    repository,
+                    isPullRefreshed
+                )
             },
         ).flow
 }
